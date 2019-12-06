@@ -37,7 +37,7 @@ const Link = ({ index, link }) => {
       <div className="flex items-center">
         <span className="gray">{index + 1}.</span>
         {isLoggedIn && (
-          <div className="ml1 gray f11" onClick={upvote}>
+          <div className="ml1-gray-f11" onClick={upvote}>
             ▲
           </div>
         )}
