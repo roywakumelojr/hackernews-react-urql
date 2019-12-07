@@ -1,44 +1,85 @@
-import React from 'react'
-import ReactDOM from 'react-dom'
-import './styles/index.css'
-import App from './components/App'
-import { BrowserRouter } from 'react-router-dom'
-import { getToken } from './token'
+import React from 'react';
+import ReactDOM from 'react-dom';
 
-import { Provider, Client, dedupExchange, fetchExchange } from 'urql'
-import { cacheExchange } from '@urql/exchange-graphcache'
+import { BrowserRouter } from 'react-router-dom';
+import { SubscriptionClient } from "subscriptions-transport-ws";
 
-import { FEED_QUERY } from './components/LinkList'
+import {
+  Provider,
+  createClient,
+  fetchExchange,
+  dedupExchange,
+  subscriptionExchange
+} from "urql";
+
+import { cacheExchange } from '@urql/exchange-graphcache';
+
+import "./styles/index.css";
+
+import App from './components/App';
+import { FEED_QUERY } from './components/LinkList';
+import { getToken } from './token';
 
 const cache = cacheExchange({
   updates: {
     Mutation: {
       post: ({ post }, _args, cache) => {
-        const variables = { first: 10, skip: 0, orderBy: 'createdAt_DESC' }
+        const variables = { first: 10, skip: 0, orderBy: "createdAt_DESC" };
         cache.updateQuery({ query: FEED_QUERY, variables }, data => {
           if (data !== null) {
-            data.feed.links.unshift(post)
-            data.feed.count++
-            return data
+            data.feed.links.unshift(post);
+            data.feed.count++;
+            return data;
           } else {
-            return null
+            return null;
           }
-        })
+        });
+      }
+    },
+    Subscription: {
+      newLink: ({ newLink }, _args, cache) => {
+        const variables = { first: 10, skip: 0, orderBy: "createdAt_DESC" };
+        cache.updateQuery({ query: FEED_QUERY, variables }, data => {
+          if (data !== null) {
+            data.feed.links.unshift(newLink);
+            data.feed.count++;
+            return data;
+          } else {
+            return null;
+          }
+        });
       }
     }
   }
-})
+});
 
-const client = new Client({
+const subscriptionClient = new SubscriptionClient(
+  'ws://localhost:4000',
+  {
+    reconnect: true,
+    connectionParams: {
+      authToken: getToken()
+    }
+  }
+);
+
+const client = createClient({
   url: 'http://localhost:4000',
   fetchOptions: () => {
-    const token = getToken()
+    const token = getToken();
     return {
       headers: { authorization: token ? `Bearer ${token}` : '' }
     }
   },
-  exchanges: [dedupExchange, cache, fetchExchange]
-})
+  exchanges: [
+    dedupExchange,
+    cache,
+    fetchExchange,
+    subscriptionExchange({
+      forwardSubscription: operation => subscriptionClient.request(operation)
+    })
+  ]
+});
 
 ReactDOM.render(
   <BrowserRouter>
@@ -46,5 +87,5 @@ ReactDOM.render(
       <App />
     </Provider>
   </BrowserRouter>,
-  document.getElementById('root')
-)
+  document.getElementById('root'),
+);

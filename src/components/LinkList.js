@@ -89,6 +89,8 @@ const LinkList = props => {
   const [result] = useQuery({ query: FEED_QUERY, variables });
   const { data, fetching, error } = result;
 
+  useSubscription({ query: NEW_VOTES_SUBSCRIPTION })
+  useSubscription({ query: NEW_LINKS_SUBSCRIPTION })
   useSubscription({ query: NEW_VOTES_SUBSCRIPTION });
   useSubscription({ query: NEW_LINKS_SUBSCRIPTION });
 
